@@ -118,7 +118,21 @@ jobs:
             sed -i 's|^android.sdk_path = .*|android.sdk_path = /home/runner/.buildozer/android/platform/android-sdk|' buildozer.spec
             sed -i 's|^android.ndk_path = .*|android.ndk_path = /home/runner/.buildozer/android/platform/android-ndk-r28c|' buildozer.spec
           fi
-
+            - name: Download Persian font before build
+        run: |
+          mkdir -p fonts
+          rm -f fonts/Vazirmatn-Regular.ttf
+          wget -q -T 60 "https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/fonts/ttf/Vazirmatn-Regular.ttf" -O fonts/Vazirmatn-Regular.ttf || true
+          if [ ! -s fonts/Vazirmatn-Regular.ttf ]; then
+            wget -q -T 60 "https://raw.githubusercontent.com/google/fonts/main/ofl/vazirmatn/Vazirmatn%5Bwght%5D.ttf" -O fonts/Vazirmatn-Regular.ttf || true
+          fi
+          SIZE=$(stat -c%s fonts/Vazirmatn-Regular.ttf 2>/dev/null || echo 0)
+          echo "Font size: $SIZE bytes"
+          if [ "$SIZE" -lt 20000 ]; then
+            rm -f fonts/Vazirmatn-Regular.ttf
+            echo "Font download failed - will use system font fallback"
+          fi
+          ls -la fonts/ || true 
       - name: Build debug APK
         run: |
           buildozer android debug
