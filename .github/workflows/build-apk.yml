@@ -118,7 +118,7 @@ jobs:
             sed -i 's|^android.sdk_path = .*|android.sdk_path = /home/runner/.buildozer/android/platform/android-sdk|' buildozer.spec
             sed -i 's|^android.ndk_path = .*|android.ndk_path = /home/runner/.buildozer/android/platform/android-ndk-r28c|' buildozer.spec
           fi
-            - name: Download Persian font before build
+      - name: Download Persian font before build
         run: |
           mkdir -p fonts
           rm -f fonts/Vazirmatn-Regular.ttf
