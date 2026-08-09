@@ -10,7 +10,7 @@ on:
 jobs:
   build-android:
     runs-on: ubuntu-22.04
-    timeout-minutes: 180
+    timeout-minutes: 240
 
     steps:
       - name: Checkout code
@@ -26,11 +26,6 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '17'
-
-      - name: Verify Java version
-        run: |
-          java -version
-          echo "JAVA_HOME=$JAVA_HOME"
 
       - name: Install system dependencies
         run: |
@@ -55,19 +50,30 @@ jobs:
             libegl1-mesa-dev \
             ccache \
             patch \
-            wget
+            wget \
+            curl \
+            lld
 
-      # این مرحله مهم است: SDK را در مسیر Buildozer نصب می‌کنیم
-      - name: Set up Android SDK in Buildozer path
+      - name: Install Buildozer
         run: |
-          export BUILD_DIR=$HOME/.buildozer/android/platform
-          export ANDROID_HOME=$BUILD_DIR/android-sdk
+          python -m pip install --upgrade pip
+          pip install --upgrade buildozer cython
+
+      - name: Setup Android SDK and NDK
+        run: |
+          export ANDROID_HOME=$HOME/.buildozer/android/platform/android-sdk
           export ANDROID_SDK_ROOT=$ANDROID_HOME
+          export ANDROID_NDK_HOME=$HOME/.buildozer/android/platform/android-ndk-r28c
+          export ANDROID_NDK_ROOT=$ANDROID_NDK_HOME
+          
+          # Create SDK directory structure
           mkdir -p $ANDROID_HOME/cmdline-tools
+          mkdir -p $ANDROID_HOME/build-tools
+          mkdir -p $ANDROID_HOME/platforms
           
-          echo "Installing SDK to: $ANDROID_HOME"
+          echo "Installing cmdline-tools..."
           
-          # Download command line tools
+          # Download and setup cmdline-tools
           wget -q https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -O cmdline-tools.zip
           unzip -q cmdline-tools.zip -d $ANDROID_HOME/cmdline-tools
           mv $ANDROID_HOME/cmdline-tools/cmdline-tools $ANDROID_HOME/cmdline-tools/latest
@@ -75,32 +81,43 @@ jobs:
           # Accept licenses
           yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
           
-          # Install specific build tools
+          # Install build-tools and platform using the correct sdkmanager
           $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "build-tools;33.0.2"
           $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "platforms;android-33"
           $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "platform-tools"
           
+          # Create tools symlink for compatibility with older tools
+          if [ ! -d "$ANDROID_HOME/tools" ]; then
+            ln -s $ANDROID_HOME/cmdline-tools/latest $ANDROID_HOME/tools
+          fi
+          
           # Verify installation
-          echo "Checking build-tools:"
-          ls -la $ANDROID_HOME/build-tools/ || echo "build-tools not found"
-          ls -la $ANDROID_HOME/build-tools/33.0.2/ || echo "33.0.2 not found"
+          echo "SDK Structure:"
+          ls -la $ANDROID_HOME/
+          echo ""
+          echo "Build-tools:"
+          ls -la $ANDROID_HOME/build-tools/ || echo "No build-tools"
+          echo ""
+          echo "Checking aidl:"
+          ls -la $ANDROID_HOME/build-tools/33.0.2/aidl || echo "aidl missing"
+          echo ""
+          echo "Checking tools/bin:"
+          ls -la $ANDROID_HOME/tools/bin/ || echo "tools/bin missing"
           
           echo "ANDROID_HOME=$ANDROID_HOME" >> $GITHUB_ENV
           echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT" >> $GITHUB_ENV
-          echo "$ANDROID_HOME/cmdline-tools/latest/bin" >> $GITHUB_PATH
-          echo "$ANDROID_HOME/platform-tools" >> $GITHUB_PATH
-          echo "$ANDROID_HOME/build-tools/33.0.2" >> $GITHUB_PATH
+          echo "ANDROID_NDK_HOME=$ANDROID_NDK_HOME" >> $GITHUB_ENV
+          echo "ANDROID_NDK_ROOT=$ANDROID_NDK_ROOT" >> $GITHUB_ENV
 
-      - name: Install Buildozer
+      - name: Update buildozer.spec
         run: |
-          python -m pip install --upgrade pip
-          pip install --upgrade buildozer cython
-
-      - name: Clean buildozer cache except SDK
-        run: |
-          # Only remove build artifacts, keep SDK
-          rm -rf .buildozer/android/platform/build
-          rm -rf bin
+          # Update buildozer.spec with correct paths
+          if [ -f "buildozer.spec" ]; then
+            sed -i 's|^#android.sdk_path = .*|android.sdk_path = /home/runner/.buildozer/android/platform/android-sdk|' buildozer.spec
+            sed -i 's|^#android.ndk_path = .*|android.ndk_path = /home/runner/.buildozer/android/platform/android-ndk-r28c|' buildozer.spec
+            sed -i 's|^android.sdk_path = .*|android.sdk_path = /home/runner/.buildozer/android/platform/android-sdk|' buildozer.spec
+            sed -i 's|^android.ndk_path = .*|android.ndk_path = /home/runner/.buildozer/android/platform/android-ndk-r28c|' buildozer.spec
+          fi
 
       - name: Build debug APK
         run: |
@@ -108,10 +125,16 @@ jobs:
         env:
           ANDROID_HOME: ${{ env.ANDROID_HOME }}
           ANDROID_SDK_ROOT: ${{ env.ANDROID_SDK_ROOT }}
+          ANDROID_NDK_HOME: ${{ env.ANDROID_NDK_HOME }}
+          ANDROID_NDK_ROOT: ${{ env.ANDROID_NDK_ROOT }}
 
       - name: List outputs
         run: |
-          ls -lah bin || true
+          echo "Contents of bin:"
+          ls -lah bin || echo "No bin directory"
+          echo ""
+          echo "APK files:"
+          find bin -name "*.apk" 2>/dev/null || echo "No APK found"
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
