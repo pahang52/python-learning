@@ -21,7 +21,6 @@ jobs:
         with:
           python-version: '3.10'
 
-      # این مرحله مهم است: Java 17 را فعال می‌کند
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
@@ -58,14 +57,15 @@ jobs:
             patch \
             wget
 
-      - name: Set up Android SDK
+      # این مرحله مهم است: SDK را در مسیر Buildozer نصب می‌کنیم
+      - name: Set up Android SDK in Buildozer path
         run: |
-          export ANDROID_HOME=$HOME/android-sdk
+          export BUILD_DIR=$HOME/.buildozer/android/platform
+          export ANDROID_HOME=$BUILD_DIR/android-sdk
           export ANDROID_SDK_ROOT=$ANDROID_HOME
           mkdir -p $ANDROID_HOME/cmdline-tools
           
-          echo "Using Java:"
-          java -version
+          echo "Installing SDK to: $ANDROID_HOME"
           
           # Download command line tools
           wget -q https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -O cmdline-tools.zip
@@ -80,6 +80,11 @@ jobs:
           $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "platforms;android-33"
           $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "platform-tools"
           
+          # Verify installation
+          echo "Checking build-tools:"
+          ls -la $ANDROID_HOME/build-tools/ || echo "build-tools not found"
+          ls -la $ANDROID_HOME/build-tools/33.0.2/ || echo "33.0.2 not found"
+          
           echo "ANDROID_HOME=$ANDROID_HOME" >> $GITHUB_ENV
           echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT" >> $GITHUB_ENV
           echo "$ANDROID_HOME/cmdline-tools/latest/bin" >> $GITHUB_PATH
@@ -91,9 +96,10 @@ jobs:
           python -m pip install --upgrade pip
           pip install --upgrade buildozer cython
 
-      - name: Clean buildozer cache
+      - name: Clean buildozer cache except SDK
         run: |
-          rm -rf .buildozer
+          # Only remove build artifacts, keep SDK
+          rm -rf .buildozer/android/platform/build
           rm -rf bin
 
       - name: Build debug APK
