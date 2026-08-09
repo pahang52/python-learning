@@ -1,5 +1,6 @@
 import ast
 import contextlib
+import glob
 import io
 import json
 import os
@@ -10,6 +11,7 @@ from kivy.app import App
 from kivy.core.audio import SoundLoader
 from kivy.core.text import LabelBase
 from kivy.core.window import Window
+from kivy.graphics import Color, RoundedRectangle
 from kivy.lang import Builder
 from kivy.metrics import dp
 from kivy.properties import ListProperty
@@ -24,33 +26,25 @@ from lessons_data import DATA
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-import glob
-import glob
-
 
 def find_persian_font():
-    # اول فونت داخل خود اپ
     candidates = [
         os.path.join(BASE_DIR, "fonts", "Vazirmatn-Regular.ttf"),
         os.path.join(BASE_DIR, "fonts", "Vazirmatn-Bold.ttf"),
-        os.path.join(BASE_DIR, "fonts", "IRANSans.ttf"),
     ]
 
-    # بعد جستجو در فونت‌های سیستم اندروید
     candidates += sorted(glob.glob("/system/fonts/*Arabic*.ttf"))
     candidates += sorted(glob.glob("/system/fonts/*arabic*.ttf"))
     candidates += sorted(glob.glob("/system/fonts/*Arab*.ttf"))
     candidates += sorted(glob.glob("/system/fonts/*Naskh*.ttf"))
     candidates += sorted(glob.glob("/system/fonts/*naskh*.ttf"))
     candidates += sorted(glob.glob("/system/fonts/*Farsi*.ttf"))
-    candidates += sorted(glob.glob("/system/fonts/*Persian*.ttf"))
 
     candidates += [
         "/system/fonts/NotoNaskhArabic-Regular.ttf",
         "/system/fonts/NotoNaskhArabicUI-Regular.ttf",
         "/system/fonts/NotoSansArabic-Regular.ttf",
         "/system/fonts/NotoSansArabicUI-Regular.ttf",
-        "/system/fonts/DroidNaskhArabic-Regular.ttf",
         "/system/fonts/DroidNaskh-Regular.ttf",
     ]
 
@@ -65,12 +59,7 @@ FONT_PATH = find_persian_font()
 
 if FONT_PATH:
     try:
-        LabelBase.register(
-            name="default",
-            fn_regular=FONT_PATH,
-            fn_bold=FONT_PATH
-        )
-        print("Font loaded:", FONT_PATH)
+        LabelBase.register(name="default", fn_regular=FONT_PATH, fn_bold=FONT_PATH)
     except Exception as e:
         print("Font error:", e)
 
@@ -83,13 +72,11 @@ class SoundManager:
         try:
             if name not in cls._cache:
                 sound = None
-
                 for ext in ("ogg", "mp3", "wav"):
                     path = os.path.join(BASE_DIR, "sounds", f"{name}.{ext}")
                     if os.path.exists(path):
                         sound = SoundLoader.load(path)
                         break
-
                 cls._cache[name] = sound
 
             sound = cls._cache.get(name)
@@ -101,7 +88,42 @@ class SoundManager:
 
 class RoundButton(Button):
     bg_color = ListProperty([0.24, 0.52, 1.0, 1.0])
-    bg_pressed = ListProperty([0.14, 0.34, 0.80, 1.0])
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+        self.background_normal = ""
+        self.background_down = ""
+        self.background_color = (0, 0, 0, 0)
+        self.bold = True
+        self.color = (1, 1, 1, 1)
+
+        with self.canvas.before:
+            self._bg_color_instr = Color(*self.bg_color)
+            self._bg_rect = RoundedRectangle(
+                pos=self.pos,
+                size=self.size,
+                radius=[dp(16)]
+            )
+
+        self.bind(pos=self._sync_rect, size=self._sync_rect)
+        self.bind(bg_color=self._sync_color, state=self._sync_color, disabled=self._sync_color)
+        self._sync_color()
+
+    def _sync_rect(self, *args):
+        self._bg_rect.pos = self.pos
+        self._bg_rect.size = self.size
+
+    def _sync_color(self, *args):
+        if self.disabled:
+            self._bg_color_instr.rgba = (0.18, 0.20, 0.28, 1.0)
+        elif self.state == "down":
+            r = self.bg_color[0] * 0.7
+            g = self.bg_color[1] * 0.7
+            b = self.bg_color[2] * 0.7
+            self._bg_color_instr.rgba = (r, g, b, 1.0)
+        else:
+            self._bg_color_instr.rgba = self.bg_color
 
 
 class NameScreen(Screen):
@@ -140,22 +162,11 @@ KV = '''
 #:import dp kivy.metrics.dp
 
 <RoundButton>:
-    background_normal: ''
-    background_down: ''
-    color: 1, 1, 1, 1
-    bold: True
     font_size: dp(18)
     halign: 'center'
     valign: 'middle'
     text_size: self.size
     padding: [dp(12), dp(8)]
-    canvas.before:
-        Color:
-            rgba: (0.18, 0.20, 0.28, 1.0) if root.disabled else (root.bg_pressed if root.state == 'down' else root.bg_color)
-        RoundedRectangle:
-            pos: root.pos
-            size: root.size
-            radius: [dp(16)]
 
 <NameScreen>:
     BoxLayout:
@@ -263,7 +274,6 @@ KV = '''
             text: 'پیشرفت من'
             size_hint_y: 0.14
             bg_color: [0.18, 0.72, 0.45, 1]
-            bg_pressed: [0.10, 0.52, 0.32, 1]
             on_release: app.go_progress()
 
 <LevelsScreen>:
@@ -344,14 +354,12 @@ KV = '''
             RoundButton:
                 text: 'شروع کوئیز'
                 bg_color: [0.95, 0.55, 0.15, 1.0]
-                bg_pressed: [0.75, 0.40, 0.08, 1.0]
                 on_release: app.start_quiz()
 
             RoundButton:
                 id: exercise_btn
                 text: 'تمرین کد'
                 bg_color: [0.15, 0.65, 0.75, 1.0]
-                bg_pressed: [0.10, 0.45, 0.55, 1.0]
                 on_release: app.open_exercise()
 
 <QuizScreen>:
@@ -460,19 +468,16 @@ KV = '''
             RoundButton:
                 text: 'اجرا'
                 bg_color: [0.95, 0.55, 0.15, 1.0]
-                bg_pressed: [0.75, 0.40, 0.08, 1.0]
                 on_release: app.run_code(False)
 
             RoundButton:
                 text: 'بررسی'
                 bg_color: [0.18, 0.72, 0.45, 1.0]
-                bg_pressed: [0.10, 0.52, 0.32, 1.0]
                 on_release: app.run_code(True)
 
             RoundButton:
                 text: 'ریست'
                 bg_color: [0.35, 0.38, 0.48, 1.0]
-                bg_pressed: [0.25, 0.28, 0.38, 1.0]
                 on_release: app.reset_code()
 
 <ResultScreen>:
@@ -559,30 +564,13 @@ SAFE_BUILTINS = {
 
 
 FORBIDDEN_CALLS = {
-    "eval",
-    "exec",
-    "open",
-    "compile",
-    "__import__",
-    "input",
-    "globals",
-    "locals",
-    "vars",
-    "getattr",
-    "setattr",
-    "delattr",
-    "breakpoint",
-    "exit",
-    "quit",
+    "eval", "exec", "open", "compile", "__import__", "input",
+    "globals", "locals", "vars", "getattr", "setattr", "delattr",
+    "breakpoint", "exit", "quit",
 }
 
 
-FORBIDDEN_ATTRS = {
-    "system",
-    "popen",
-    "exec",
-    "eval",
-}
+FORBIDDEN_ATTRS = {"system", "popen", "exec", "eval"}
 
 
 def analyze_code(code):
@@ -658,12 +646,8 @@ def load_save(path):
         with open(path, "r", encoding="utf-8") as f:
             data = json.load(f)
 
-        data.setdefault("name", "")
-        data.setdefault("xp", 0)
-        data.setdefault("coins", 0)
-        data.setdefault("hearts", 5)
-        data.setdefault("completed", [])
-        data.setdefault("completed_exercises", [])
+        for key in default:
+            data.setdefault(key, default[key])
         return data
     except Exception:
         return default
@@ -725,15 +709,10 @@ class PyQuestApp(App):
     def refresh_home(self):
         home = self.sm.get_screen("home")
 
-        name = self.save.get("name", "قهرمان")
-        xp = self.save.get("xp", 0)
-        coins = self.save.get("coins", 0)
-        hearts = self.save.get("hearts", 5)
-
-        home.ids.home_name.text = name
-        home.ids.home_xp.text = f"XP {xp}"
-        home.ids.home_coins.text = f"سکه {coins}"
-        home.ids.home_hearts.text = f"جان {hearts}"
+        home.ids.home_name.text = self.save.get("name", "قهرمان")
+        home.ids.home_xp.text = f"XP {self.save.get('xp', 0)}"
+        home.ids.home_coins.text = f"سکه {self.save.get('coins', 0)}"
+        home.ids.home_hearts.text = f"جان {self.save.get('hearts', 5)}"
 
     def save_name(self):
         SoundManager.play("click")
@@ -792,7 +771,6 @@ class PyQuestApp(App):
                     size_hint_y=None,
                     height=dp(62),
                     bg_color=color,
-                    bg_pressed=color,
                     halign="right"
                 )
                 btn.text_size = (Window.width - dp(90), None)
@@ -810,16 +788,11 @@ class PyQuestApp(App):
         lessons_done = len(set(self.save.get("completed", [])))
         exercises_done = len(set(self.save.get("completed_exercises", [])))
 
-        name = self.save.get("name", "قهرمان")
-        xp = self.save.get("xp", 0)
-        coins = self.save.get("coins", 0)
-        hearts = self.save.get("hearts", 5)
-
         text = (
-            f"قهرمان: {name}\n"
-            f"XP: {xp}\n"
-            f"سکه: {coins}\n"
-            f"جان: {hearts}\n"
+            f"قهرمان: {self.save.get('name', 'قهرمان')}\n"
+            f"XP: {self.save.get('xp', 0)}\n"
+            f"سکه: {self.save.get('coins', 0)}\n"
+            f"جان: {self.save.get('hearts', 5)}\n"
             f"درس‌های کامل شده: {lessons_done} از {total}\n"
             f"تمرین‌های انجام شده: {exercises_done} از {total}\n"
         )
@@ -914,7 +887,6 @@ class PyQuestApp(App):
                 size_hint_y=None,
                 height=dp(56),
                 bg_color=[0.20, 0.24, 0.36, 1.0],
-                bg_pressed=[0.30, 0.36, 0.55, 1.0],
                 halign="right"
             )
             btn.text_size = (Window.width - dp(80), None)
@@ -1001,7 +973,6 @@ class PyQuestApp(App):
         if passed:
             SoundManager.play("correct")
             message += "آفرین! "
-
             if new_completion:
                 message += "درس کامل شد و 20 سکه گرفتی."
             else:
