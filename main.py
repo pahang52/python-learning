@@ -1,6 +1,5 @@
 import ast
 import contextlib
-import glob
 import io
 import json
 import os
@@ -9,7 +8,6 @@ from functools import partial
 from kivy.animation import Animation
 from kivy.app import App
 from kivy.core.audio import SoundLoader
-from kivy.core.text import LabelBase
 from kivy.core.window import Window
 from kivy.graphics import Color, RoundedRectangle
 from kivy.lang import Builder
@@ -25,43 +23,6 @@ from lessons_data import DATA
 
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-
-
-def find_persian_font():
-    candidates = [
-        os.path.join(BASE_DIR, "fonts", "Vazirmatn-Regular.ttf"),
-        os.path.join(BASE_DIR, "fonts", "Vazirmatn-Bold.ttf"),
-    ]
-
-    candidates += sorted(glob.glob("/system/fonts/*Arabic*.ttf"))
-    candidates += sorted(glob.glob("/system/fonts/*arabic*.ttf"))
-    candidates += sorted(glob.glob("/system/fonts/*Arab*.ttf"))
-    candidates += sorted(glob.glob("/system/fonts/*Naskh*.ttf"))
-    candidates += sorted(glob.glob("/system/fonts/*naskh*.ttf"))
-    candidates += sorted(glob.glob("/system/fonts/*Farsi*.ttf"))
-
-    candidates += [
-        "/system/fonts/NotoNaskhArabic-Regular.ttf",
-        "/system/fonts/NotoNaskhArabicUI-Regular.ttf",
-        "/system/fonts/NotoSansArabic-Regular.ttf",
-        "/system/fonts/NotoSansArabicUI-Regular.ttf",
-        "/system/fonts/DroidNaskh-Regular.ttf",
-    ]
-
-    for path in candidates:
-        if os.path.exists(path):
-            return path
-
-    return None
-
-
-FONT_PATH = find_persian_font()
-
-if FONT_PATH:
-    try:
-        LabelBase.register(name="default", fn_regular=FONT_PATH, fn_bold=FONT_PATH)
-    except Exception as e:
-        print("Font error:", e)
 
 
 class SoundManager:
@@ -175,13 +136,13 @@ KV = '''
         spacing: dp(18)
 
         Label:
-            text: 'پایتون کوئست'
+            text: 'Python Quest'
             font_size: dp(32)
             bold: True
             size_hint_y: 0.18
 
         Label:
-            text: 'برای شروع ماجراجویی، اسم قهرمان را بنویس'
+            text: 'Enter your hero name to start the adventure'
             font_size: dp(17)
             size_hint_y: 0.10
             text_size: self.width, None
@@ -192,14 +153,14 @@ KV = '''
             size_hint_y: 0.12
             font_size: dp(20)
             multiline: False
-            halign: 'right'
-            hint_text: 'نام قهرمان'
+            halign: 'left'
+            hint_text: 'Hero name'
             background_color: [0.12, 0.14, 0.22, 1.0]
             foreground_color: [1.0, 1.0, 1.0, 1.0]
             cursor_color: [1.0, 1.0, 0.4, 1.0]
 
         RoundButton:
-            text: 'شروع بازی'
+            text: 'Start Game'
             size_hint_y: 0.14
             on_release: app.save_name()
 
@@ -221,7 +182,7 @@ KV = '''
                 size_hint_x: 0.34
                 text_size: self.size
                 valign: 'middle'
-                halign: 'right'
+                halign: 'left'
 
             Label:
                 id: home_xp
@@ -253,25 +214,25 @@ KV = '''
                 halign: 'center'
 
         Label:
-            text: 'آموزش بازی‌محور پایتون'
+            text: 'Game-Based Python Learning'
             font_size: dp(28)
             bold: True
             size_hint_y: 0.16
 
         Label:
-            text: 'درس ببین، کوئیز بده، کد بنویس و سکه جمع کن'
+            text: 'Learn, take quizzes, write code and collect coins'
             font_size: dp(16)
             size_hint_y: 0.10
             text_size: self.width, None
             halign: 'center'
 
         RoundButton:
-            text: 'شروع دوره‌ها'
+            text: 'Start Courses'
             size_hint_y: 0.14
             on_release: app.go_levels()
 
         RoundButton:
-            text: 'پیشرفت من'
+            text: 'My Progress'
             size_hint_y: 0.14
             bg_color: [0.18, 0.72, 0.45, 1]
             on_release: app.go_progress()
@@ -287,13 +248,13 @@ KV = '''
             spacing: dp(8)
 
             RoundButton:
-                text: 'بازگشت'
+                text: 'Back'
                 size_hint_x: 0.25
                 font_size: dp(14)
                 on_release: app.go_home()
 
             Label:
-                text: 'دوره‌ها و درس‌ها'
+                text: 'Courses & Lessons'
                 font_size: dp(24)
                 bold: True
 
@@ -316,14 +277,14 @@ KV = '''
             spacing: dp(8)
 
             RoundButton:
-                text: 'بازگشت'
+                text: 'Back'
                 size_hint_x: 0.25
                 font_size: dp(14)
                 on_release: app.go_levels()
 
             Label:
                 id: lesson_title
-                text: 'درس'
+                text: 'Lesson'
                 font_size: dp(20)
                 bold: True
 
@@ -345,20 +306,20 @@ KV = '''
                     size_hint_y: None
                     height: self.texture_size[1]
                     text_size: self.width, None
-                    halign: 'right'
+                    halign: 'left'
 
         BoxLayout:
             size_hint_y: 0.12
             spacing: dp(8)
 
             RoundButton:
-                text: 'شروع کوئیز'
+                text: 'Start Quiz'
                 bg_color: [0.95, 0.55, 0.15, 1.0]
                 on_release: app.start_quiz()
 
             RoundButton:
                 id: exercise_btn
-                text: 'تمرین کد'
+                text: 'Code Practice'
                 bg_color: [0.15, 0.65, 0.75, 1.0]
                 on_release: app.open_exercise()
 
@@ -370,7 +331,7 @@ KV = '''
 
         Label:
             id: q_num
-            text: 'سوال 1'
+            text: 'Question 1'
             size_hint_y: 0.08
             font_size: dp(16)
 
@@ -380,7 +341,7 @@ KV = '''
             font_size: dp(20)
             size_hint_y: 0.18
             text_size: self.width, None
-            halign: 'right'
+            halign: 'left'
             valign: 'middle'
 
         BoxLayout:
@@ -398,7 +359,7 @@ KV = '''
 
         RoundButton:
             id: next_btn
-            text: 'بعدی'
+            text: 'Next'
             size_hint_y: 0.12
             opacity: 0
             disabled: True
@@ -415,14 +376,14 @@ KV = '''
             spacing: dp(8)
 
             RoundButton:
-                text: 'بازگشت'
+                text: 'Back'
                 size_hint_x: 0.25
                 font_size: dp(14)
                 on_release: app.go_lesson_from_code()
 
             Label:
                 id: exercise_title
-                text: 'تمرین'
+                text: 'Practice'
                 font_size: dp(18)
                 bold: True
 
@@ -437,7 +398,7 @@ KV = '''
             size_hint_y: 0.12
             font_size: dp(16)
             text_size: self.width, None
-            halign: 'right'
+            halign: 'left'
 
         TextInput:
             id: code_input
@@ -466,17 +427,17 @@ KV = '''
             spacing: dp(8)
 
             RoundButton:
-                text: 'اجرا'
+                text: 'Run'
                 bg_color: [0.95, 0.55, 0.15, 1.0]
                 on_release: app.run_code(False)
 
             RoundButton:
-                text: 'بررسی'
+                text: 'Check'
                 bg_color: [0.18, 0.72, 0.45, 1.0]
                 on_release: app.run_code(True)
 
             RoundButton:
-                text: 'ریست'
+                text: 'Reset'
                 bg_color: [0.35, 0.38, 0.48, 1.0]
                 on_release: app.reset_code()
 
@@ -494,7 +455,7 @@ KV = '''
             halign: 'center'
 
         RoundButton:
-            text: 'ادامه'
+            text: 'Continue'
             size_hint_y: 0.14
             on_release: app.go_levels()
 
@@ -505,7 +466,7 @@ KV = '''
         spacing: dp(18)
 
         Label:
-            text: 'پیشرفت شما'
+            text: 'Your Progress'
             font_size: dp(28)
             bold: True
             size_hint_y: 0.15
@@ -518,7 +479,7 @@ KV = '''
             halign: 'center'
 
         RoundButton:
-            text: 'بازگشت'
+            text: 'Back'
             size_hint_y: 0.14
             on_release: app.go_home()
 '''
@@ -577,33 +538,33 @@ def analyze_code(code):
     try:
         tree = ast.parse(code)
     except SyntaxError as e:
-        return f"خطای نحوی: {e}", None
+        return f"Syntax error: {e}", None
 
     for node in ast.walk(tree):
         if isinstance(node, (ast.Import, ast.ImportFrom)):
-            return "استفاده از import در تمرین‌ها مجاز نیست.", None
+            return "import is not allowed in exercises.", None
 
         if isinstance(node, ast.While):
             if isinstance(node.test, ast.Constant) and bool(node.test.value):
-                return "حلقه بی‌نهایت با مقدار ثابت مجاز نیست.", None
+                return "Infinite loop with a constant value is not allowed.", None
 
         if isinstance(node, ast.Name):
             name = node.id
             if name.startswith("__") and name.endswith("__"):
-                return "دسترسی غیرمجاز است.", None
+                return "Access denied.", None
             if name in FORBIDDEN_CALLS:
-                return f"استفاده از {name} مجاز نیست.", None
+                return f"Using {name} is not allowed.", None
 
         if isinstance(node, ast.Attribute):
             attr = node.attr
             if attr.startswith("__") and attr.endswith("__"):
-                return "دسترسی غیرمجاز است.", None
+                return "Access denied.", None
             if attr in FORBIDDEN_ATTRS:
-                return "دسترسی غیرمجاز است.", None
+                return "Access denied.", None
 
         if isinstance(node, ast.Call):
             if isinstance(node.func, ast.Name) and node.func.id in FORBIDDEN_CALLS:
-                return f"تابع {node.func.id} مجاز نیست.", None
+                return f"Function {node.func.id} is not allowed.", None
 
     return None, tree
 
@@ -625,7 +586,7 @@ def run_user_code(code):
             exec(compiled, safe_globals, safe_locals)
         return output.getvalue()
     except Exception as e:
-        return output.getvalue() + f"\nخطا: {type(e).__name__}: {e}"
+        return output.getvalue() + f"\nError: {type(e).__name__}: {e}"
 
 
 def normalize_output(text):
@@ -709,17 +670,17 @@ class PyQuestApp(App):
     def refresh_home(self):
         home = self.sm.get_screen("home")
 
-        home.ids.home_name.text = self.save.get("name", "قهرمان")
+        home.ids.home_name.text = self.save.get("name", "Hero")
         home.ids.home_xp.text = f"XP {self.save.get('xp', 0)}"
-        home.ids.home_coins.text = f"سکه {self.save.get('coins', 0)}"
-        home.ids.home_hearts.text = f"جان {self.save.get('hearts', 5)}"
+        home.ids.home_coins.text = f"Coins {self.save.get('coins', 0)}"
+        home.ids.home_hearts.text = f"Hearts {self.save.get('hearts', 5)}"
 
     def save_name(self):
         SoundManager.play("click")
 
         name = self.sm.get_screen("name").ids.name_input.text.strip()
         if not name:
-            name = "قهرمان"
+            name = "Hero"
 
         self.save["name"] = name
         save_game(self.save_path, self.save)
@@ -746,7 +707,7 @@ class PyQuestApp(App):
                 size_hint_y=None,
                 height=dp(42),
                 color=(1, 1, 1, 0.9),
-                halign="right"
+                halign="left"
             )
             header.text_size = (Window.width - dp(70), None)
             grid.add_widget(header)
@@ -756,9 +717,9 @@ class PyQuestApp(App):
                 completed = self.is_completed(li, si)
 
                 if completed:
-                    prefix = "[تکمیل] "
+                    prefix = "[Done] "
                 elif not unlocked:
-                    prefix = "[قفل] "
+                    prefix = "[Locked] "
                 else:
                     prefix = ""
 
@@ -771,7 +732,7 @@ class PyQuestApp(App):
                     size_hint_y=None,
                     height=dp(62),
                     bg_color=color,
-                    halign="right"
+                    halign="left"
                 )
                 btn.text_size = (Window.width - dp(90), None)
                 btn.bind(on_release=partial(self.open_lesson, li, si))
@@ -789,18 +750,18 @@ class PyQuestApp(App):
         exercises_done = len(set(self.save.get("completed_exercises", [])))
 
         text = (
-            f"قهرمان: {self.save.get('name', 'قهرمان')}\n"
+            f"Hero: {self.save.get('name', 'Hero')}\n"
             f"XP: {self.save.get('xp', 0)}\n"
-            f"سکه: {self.save.get('coins', 0)}\n"
-            f"جان: {self.save.get('hearts', 5)}\n"
-            f"درس‌های کامل شده: {lessons_done} از {total}\n"
-            f"تمرین‌های انجام شده: {exercises_done} از {total}\n"
+            f"Coins: {self.save.get('coins', 0)}\n"
+            f"Hearts: {self.save.get('hearts', 5)}\n"
+            f"Lessons completed: {lessons_done} of {total}\n"
+            f"Exercises done: {exercises_done} of {total}\n"
         )
 
         if lessons_done == total:
-            text += "عالی! همه دوره‌ها را تمام کردی."
+            text += "Great! You finished all courses."
         else:
-            text += "برای باز شدن درس‌ها، کوئیزها را قبول شو."
+            text += "Pass quizzes to unlock new lessons."
 
         self.sm.get_screen("progress").ids.progress_text.text = text
         self.sm.current = "progress"
@@ -852,7 +813,7 @@ class PyQuestApp(App):
         lesson = self.get_current_lesson()
 
         if not lesson.get("quiz"):
-            self.show_result("این درس هنوز کوئیز ندارد.")
+            self.show_result("This lesson has no quiz yet.")
             return
 
         self.current_question = 0
@@ -872,7 +833,7 @@ class PyQuestApp(App):
         q = quiz[self.current_question]
         quiz_screen = self.sm.get_screen("quiz")
 
-        quiz_screen.ids.q_num.text = f"سوال {self.current_question + 1} از {len(quiz)}"
+        quiz_screen.ids.q_num.text = f"Question {self.current_question + 1} of {len(quiz)}"
         quiz_screen.ids.q_text.text = q["q"]
         quiz_screen.ids.feedback.text = ""
         quiz_screen.ids.next_btn.opacity = 0
@@ -887,7 +848,7 @@ class PyQuestApp(App):
                 size_hint_y=None,
                 height=dp(56),
                 bg_color=[0.20, 0.24, 0.36, 1.0],
-                halign="right"
+                halign="left"
             )
             btn.text_size = (Window.width - dp(80), None)
             btn.bind(on_release=partial(self.answer_question, i, btn))
@@ -912,7 +873,7 @@ class PyQuestApp(App):
             self.save["coins"] = self.save.get("coins", 0) + 5
             save_game(self.save_path, self.save)
 
-            feedback.text = "آفرین! درست بود. +5 سکه"
+            feedback.text = "Correct! +5 coins"
             feedback.color = (0.2, 0.9, 0.4, 1)
             SoundManager.play("correct")
         else:
@@ -924,9 +885,9 @@ class PyQuestApp(App):
             save_game(self.save_path, self.save)
 
             lost = old_hearts - new_hearts
-            feedback.text = "اشتباه بود."
+            feedback.text = "Wrong."
             if lost:
-                feedback.text += f" -{lost} جان"
+                feedback.text += f" -{lost} heart"
 
             feedback.color = (1.0, 0.35, 0.35, 1)
             SoundManager.play("wrong")
@@ -968,18 +929,18 @@ class PyQuestApp(App):
         self.save["xp"] = self.save.get("xp", 0) + xp_gain
         save_game(self.save_path, self.save)
 
-        message = f"پاسخ درست: {self.correct_count} از {quiz_len}\n"
+        message = f"Correct answers: {self.correct_count} of {quiz_len}\n"
 
         if passed:
             SoundManager.play("correct")
-            message += "آفرین! "
+            message += "Great! "
             if new_completion:
-                message += "درس کامل شد و 20 سکه گرفتی."
+                message += "Lesson completed and you got 20 coins."
             else:
-                message += "این درس قبلاً کامل شده بود."
+                message += "This lesson was already completed."
         else:
             SoundManager.play("wrong")
-            message += "هنوز قبول نشدی. دوباره تلاش کن."
+            message += "Not passed yet. Try again."
 
         self.show_result(message)
 
@@ -994,12 +955,12 @@ class PyQuestApp(App):
         exercise = lesson.get("exercise")
 
         if not exercise:
-            self.show_result("این درس تمرین کد ندارد.")
+            self.show_result("This lesson has no code practice.")
             return
 
         code_screen = self.sm.get_screen("code")
 
-        code_screen.ids.exercise_title.text = "تمرین: " + lesson["title"]
+        code_screen.ids.exercise_title.text = "Practice: " + lesson["title"]
         code_screen.ids.task_text.text = exercise.get("task", "")
         code_screen.ids.code_input.text = exercise.get("code", "")
         code_screen.ids.output_text.text = ""
@@ -1028,7 +989,7 @@ class PyQuestApp(App):
         code = code_screen.ids.code_input.text
 
         result = run_user_code(code)
-        display = result if result.strip() else "(خروجی خالی)"
+        display = result if result.strip() else "(no output)"
 
         if check:
             lesson = self.get_current_lesson()
@@ -1036,11 +997,11 @@ class PyQuestApp(App):
             expected = exercise.get("expected", "")
 
             if normalize_output(result) == normalize_output(expected):
-                display += "\n\nآفرین! خروجی درست است."
+                display += "\n\nGreat! Output is correct."
                 self.award_exercise()
                 SoundManager.play("correct")
             else:
-                display += f"\n\nخروجی درست مورد انتظار:\n{expected}"
+                display += f"\n\nExpected output:\n{expected}"
                 SoundManager.play("wrong")
 
         self.animate_flash(code_screen.ids.output_text)
