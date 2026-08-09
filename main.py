@@ -25,6 +25,7 @@ from lessons_data import DATA
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 import glob
+import glob
 
 
 def find_persian_font():
@@ -58,6 +59,20 @@ def find_persian_font():
             return path
 
     return None
+
+
+FONT_PATH = find_persian_font()
+
+if FONT_PATH:
+    try:
+        LabelBase.register(
+            name="default",
+            fn_regular=FONT_PATH,
+            fn_bold=FONT_PATH
+        )
+        print("Font loaded:", FONT_PATH)
+    except Exception as e:
+        print("Font error:", e)
 
 
 class SoundManager:
