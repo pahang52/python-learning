@@ -24,21 +24,40 @@ from lessons_data import DATA
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
+import glob
 
-FONT_CANDIDATES = [
-    os.path.join(BASE_DIR, "fonts", "Vazirmatn-Regular.ttf"),
-    "/system/fonts/NotoNaskhArabic-Regular.ttf",
-    "/system/fonts/NotoSansArabic-Regular.ttf",
-]
 
-for font_path in FONT_CANDIDATES:
-    if os.path.exists(font_path):
-        LabelBase.register(
-            name="default",
-            fn_regular=font_path,
-            fn_bold=font_path
-        )
-        break
+def find_persian_font():
+    # اول فونت داخل خود اپ
+    candidates = [
+        os.path.join(BASE_DIR, "fonts", "Vazirmatn-Regular.ttf"),
+        os.path.join(BASE_DIR, "fonts", "Vazirmatn-Bold.ttf"),
+        os.path.join(BASE_DIR, "fonts", "IRANSans.ttf"),
+    ]
+
+    # بعد جستجو در فونت‌های سیستم اندروید
+    candidates += sorted(glob.glob("/system/fonts/*Arabic*.ttf"))
+    candidates += sorted(glob.glob("/system/fonts/*arabic*.ttf"))
+    candidates += sorted(glob.glob("/system/fonts/*Arab*.ttf"))
+    candidates += sorted(glob.glob("/system/fonts/*Naskh*.ttf"))
+    candidates += sorted(glob.glob("/system/fonts/*naskh*.ttf"))
+    candidates += sorted(glob.glob("/system/fonts/*Farsi*.ttf"))
+    candidates += sorted(glob.glob("/system/fonts/*Persian*.ttf"))
+
+    candidates += [
+        "/system/fonts/NotoNaskhArabic-Regular.ttf",
+        "/system/fonts/NotoNaskhArabicUI-Regular.ttf",
+        "/system/fonts/NotoSansArabic-Regular.ttf",
+        "/system/fonts/NotoSansArabicUI-Regular.ttf",
+        "/system/fonts/DroidNaskhArabic-Regular.ttf",
+        "/system/fonts/DroidNaskh-Regular.ttf",
+    ]
+
+    for path in candidates:
+        if os.path.exists(path):
+            return path
+
+    return None
 
 
 class SoundManager:
